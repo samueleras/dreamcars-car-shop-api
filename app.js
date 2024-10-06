@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import Car from "./DBmodels/car.js";
+import path from "path";
+import { fileURLToPath } from "url";
+import cors from "cors";
 
 dotenv.config();
 
@@ -11,8 +14,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Filepaths
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Enable CORS for all origins
-/* app.use(cors()); */
+app.use(cors());
 
 // connect to MongoDb
 await mongoose
@@ -23,45 +30,54 @@ await mongoose
 // listen for requests on localhost:3000
 app.listen(PORT);
 
-// Use body parser for json or url
-/* app.use(bodyParser.json()); //maybe use: app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true })); */
+// parser for json
+app.use(express.json());
 
 // static files
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/", (req, res) => {
-  //Send static react page
-  const cars = [
-    { id: 1, brand: "Toyota", model: "Corolla" },
-    { id: 2, brand: "Honda", model: "Civic" },
-  ];
-  res.json(cars);
-});
+/* app.get("/", async (req, res) => {
+  try {
+    const params = JSON.parse(req.params.params);
+    const page = params.page;
+    const sorting = params.sorting;
+    const searchparam = (params.searchparam ??= "");
+    const cars = await Car.find();
+    res.send(cars);
+  } catch (err) {
+    console.log("Failed to fetch cars. " + err);
+    send500(res, req);
+  }
+}); */
 
 // Send all car objects
 app.get("/cars", async (req, res) => {
   try {
+    const cars = await Car.find();
+    res.send(cars);
   } catch (err) {
-    console.log("Failed to fetch car. " + err);
-    send404(res, req);
+    console.log("Failed to fetch cars. " + err);
+    send500(res);
   }
 });
 
 // Send single car object
 app.get("/car/:id", async (req, res) => {
   try {
+    const car = await Car.findById(req.params.id);
+    res.send(car);
   } catch (err) {
     console.log("Failed to fetch car. " + err);
-    send404(res, req);
+    send500(res);
   }
 });
 
-// errorpage
-app.use((req, res) => {
-  send404(res, req);
+// Catch-all route to serve the React app for all other routes
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-const send404 = (res, req) => {
-  //Send error as response
+const send500 = (res) => {
+  //Send internal server error as response
+  res.status(500).send("500 Internal Server Error");
 };
