@@ -54,7 +54,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get("/cars", async (req, res) => {
   try {
     const cars = await Car.find();
-    res.send(cars);
+    res.json(cars);
   } catch (err) {
     console.log("Failed to fetch cars. " + err);
     send500(res);
@@ -65,7 +65,17 @@ app.get("/cars", async (req, res) => {
 app.get("/car/:id", async (req, res) => {
   try {
     const car = await Car.findById(req.params.id);
-    res.send(car);
+    res.json(car);
+  } catch (err) {
+    console.log("Failed to fetch car. " + err);
+    send500(res);
+  }
+});
+
+app.post("/cars/bulk", async (req, res) => {
+  try {
+    const cars = await Car.find({ _id: { $in: req.body.ids } });
+    res.json(cars);
   } catch (err) {
     console.log("Failed to fetch car. " + err);
     send500(res);
