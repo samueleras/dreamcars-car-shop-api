@@ -36,24 +36,43 @@ app.use(express.json());
 // static files
 app.use(express.static(path.join(__dirname, "public")));
 
-/* app.get("/", async (req, res) => {
-  try {
-    const params = JSON.parse(req.params.params);
-    const page = params.page;
-    const sorting = params.sorting;
-    const searchparam = (params.searchparam ??= "");
-    const cars = await Car.find();
-    res.send(cars);
-  } catch (err) {
-    console.log("Failed to fetch cars. " + err);
-    send500(res, req);
-  }
-}); */
-
 // Send all car objects
-app.get("/cars", async (req, res) => {
+app.post("/cars", async (req, res) => {
   try {
-    const cars = await Car.find();
+    const {
+      vehicleType,
+      gearboxType,
+      minHorsePower,
+      onlyElectric,
+      minPrice,
+      maxPrice,
+      passengerCount,
+      doorCount,
+      searchText,
+      sortOrder,
+      pageSize,
+    } = req.body || {};
+
+    let queryObject = {};
+    if (vehicleType) queryObject.type = vehicleType;
+    if (gearboxType) queryObject.gearbox = gearboxType;
+    if (minHorsePower) queryObject.horsepower = { $gte: minHorsePower };
+    if (onlyElectric) queryObject.electric = true;
+    if (passengerCount) queryObject.passengerCount = passengerCount;
+    if (doorCount) queryObject.doorCount = doorCount;
+    if (minPrice || maxPrice) {
+      queryObject.price = {};
+      if (minPrice) queryObject.price.$gte = minPrice;
+      if (maxPrice) queryObject.price.$lte = maxPrice;
+    }
+    if (searchText)
+      queryObject = {
+        model: { $regex: ".*" + searchText + ".*", $options: "i" },
+      };
+    const cars = await Car.find(queryObject).exec();
+
+    console.log(queryObject);
+
     res.json(cars);
   } catch (err) {
     console.log("Failed to fetch cars. " + err);
