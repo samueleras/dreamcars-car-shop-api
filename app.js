@@ -50,9 +50,9 @@ app.post("/cars", async (req, res) => {
       doorCount,
       searchText,
       sortOrder,
-      pageSize,
     } = req.body || {};
 
+    //Filter
     let queryObject = {};
     if (vehicleType) queryObject.type = vehicleType;
     if (gearboxType) queryObject.gearbox = gearboxType;
@@ -65,13 +65,29 @@ app.post("/cars", async (req, res) => {
       if (minPrice) queryObject.price.$gte = minPrice;
       if (maxPrice) queryObject.price.$lte = maxPrice;
     }
+
+    //Search (overrides Filter)
     if (searchText)
       queryObject = {
         model: { $regex: ".*" + searchText + ".*", $options: "i" },
       };
-    const cars = await Car.find(queryObject).exec();
 
-    console.log(queryObject);
+    //SortOrder
+    const sortOrderMapping = {
+      brandDesc: { brand: -1 },
+      brandAsc: { brand: 1 },
+      priceDesc: { price: -1 },
+      priceAsc: { price: 1 },
+      horsepowerDesc: { horsepower: -1 },
+      horsepowerAsc: { horsepower: 1 },
+    };
+
+    let sortOrderObj = { brand: 1 };
+    if (sortOrder) {
+      sortOrderObj = sortOrderMapping[sortOrder];
+    }
+
+    const cars = await Car.find(queryObject).sort(sortOrderObj);
 
     res.json(cars);
   } catch (err) {
